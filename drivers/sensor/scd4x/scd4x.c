@@ -203,12 +203,10 @@ int scd4x_set_ambient_pressure(const struct device *dev, uint16_t pressure)
 
 
 static int scd4x_start_periodic_measurement(const struct device *dev, enum scd4x_measure_mode measure_mode) {
-	int cmd;
+	int cmd = SCD4X_CMD_START_PERIODIC_MEASUREMENT;
 
 	if (measure_mode == MEASURE_MODE_LOW_POWER) {
 		cmd = SCD4X_CMD_START_LOW_POWER_PERIODIC_MEASUREMENT;
-	} else if (measure_mode == MEASURE_MODE_NORMAL) {
-		cmd = SCD4X_CMD_START_PERIODIC_MEASUREMENT;
 	}
 
 	return scd4x_write_command(dev, cmd);
@@ -220,7 +218,6 @@ static int scd4x_start_periodic_measurement(const struct device *dev, enum scd4x
  */
 static int scd4x_get_serial_number(const struct device *dev)
 {
-	const struct scd4x_config *cfg = dev->config;
 	struct scd4x_data *data = dev->data;
 	int rc;
 
@@ -356,7 +353,7 @@ static int scd4x_sample_fetch(const struct device *dev,
 		 * It is assumed that if the sensor has lost power or is otherwise not responding, then scd4x_read_reg
 		 * will return an error, which should prevent the kernel from getting stuck in an infinite loop here.
 		 */
-		uint16_t status_register;
+		uint16_t status_register = 0;
 		while (!(SCD4X_MEASURE_READY(status_register))) {
 			uint8_t rx_buf[3];
 			rc = scd4x_read_reg(dev, SCD4X_CMD_GET_DATA_READY_STATUS, rx_buf, sizeof(rx_buf));
@@ -468,7 +465,6 @@ static int scd4x_pm_action(const struct device *dev,
 static int scd4x_init(const struct device *dev)
 {
 	const struct scd4x_config *cfg = dev->config;
-	struct scd4x_data *data = dev->data;
 	int rc = 0;
 
 	if (!device_is_ready(cfg->bus.bus)) {

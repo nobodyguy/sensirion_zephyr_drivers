@@ -20,23 +20,22 @@ LOG_MODULE_REGISTER(main);
 #error "No sensirion,scd4x compatible node found in the device tree"
 #endif
 
-
 void main(void)
 {
-	printk("\n");
-
 	const struct device *scd = DEVICE_DT_GET_ANY(sensirion_scd4x);
-
 	struct sensor_value temp, hum, co2;
 
-	if (!device_is_ready(scd)) {
+	if (!device_is_ready(scd))
+	{
 		LOG_ERR("Device %s is not ready", scd->name);
 		return;
 	}
 
-	while (true) {
-		if (sensor_sample_fetch(scd)) {
-			LOG_ERR("Failed to fetch sample from SCD4X device");
+	while (true)
+	{
+		if (sensor_sample_fetch(scd))
+		{
+			LOG_ERR("Failed to fetch sample from %s device", scd->name);
 			return;
 		}
 
@@ -45,14 +44,16 @@ void main(void)
 		sensor_channel_get(scd, SENSOR_CHAN_CO2, &co2);
 
 		double temperature = sensor_value_to_double(&temp);
-		#ifdef CONFIG_APP_USE_FAHRENHEIT
-		temperature = ((9.0 / 5.0) * temperature) + 32;
-		#endif
+		if (IS_ENABLED(CONFIG_APP_USE_FAHRENHEIT))
+		{
+			temperature = ((9.0 / 5.0) * temperature) + 32;
+		}
 
-		LOG_INF("SCD4x Temperature: %.2f°, Humidity: %0.2f%%, CO2: %0.0f ppm",
-		       temperature,
-		       sensor_value_to_double(&hum),
-			   sensor_value_to_double(&co2));
+		LOG_INF("%s Temperature: %.2f°, Humidity: %0.2f%%, CO2: %0.0f ppm",
+				scd->name,
+				temperature,
+				sensor_value_to_double(&hum),
+				sensor_value_to_double(&co2));
 
 		k_sleep(K_MSEC(5000));
 	}

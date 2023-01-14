@@ -9,9 +9,12 @@ config SCD4X
 	help
 	  Enable driver for SCD4x co2, temperature, and humidity sensors.
 
+if SCD4X
+
 config SCD4X_POWER_DOWN_SINGLE_SHOT_MEASUREMENT
 	bool "SCD41 only: power down sensor between single-shot measurements"
-	depends on SCD4X
 	help
 	  Will send the power_down command to the sensor after a measurement, and wake it up again
 	  before the next measurement. Only works on SCD41 model.
+
+endif # SCD4X
