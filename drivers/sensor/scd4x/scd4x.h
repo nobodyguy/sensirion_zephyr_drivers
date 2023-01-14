@@ -20,6 +20,7 @@ extern "C" {
 #endif
 
 #include <zephyr/drivers/sensor.h>
+#include <zephyr/drivers/i2c.h>
 #include <zephyr/device.h>
 
 #define SCD4X_MAX_AMBIENT_PRESSURE UINT16_MAX
