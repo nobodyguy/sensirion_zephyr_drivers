@@ -1,0 +1,6 @@
+name: sensirion_drivers
+build:
+  cmake: .
+  kconfig: Kconfig
+  settings:
+    dts_root: .
