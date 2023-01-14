@@ -205,7 +205,7 @@ int scd4x_set_ambient_pressure(const struct device *dev, uint16_t pressure)
 static int scd4x_start_periodic_measurement(const struct device *dev, enum scd4x_measure_mode measure_mode) {
 	int cmd = SCD4X_CMD_START_PERIODIC_MEASUREMENT;
 
-	if (measure_mode == MEASURE_MODE_LOW_POWER) {
+	if (measure_mode == SCD4X_MEASURE_MODE_LOW_POWER) {
 		cmd = SCD4X_CMD_START_LOW_POWER_PERIODIC_MEASUREMENT;
 	}
 
@@ -320,7 +320,7 @@ static int scd4x_sample_fetch(const struct device *dev,
 	 * because the wait time is different by a factor of 100. The full measurement takes 5000ms while
 	 * the temperature/humidity only command takes 50ms.
 	 */
-	if (cfg->model == SCD41 && cfg->measure_mode == MEASURE_MODE_SINGLE_SHOT) {
+	if (cfg->model == SCD4X_MODEL_SCD41 && cfg->measure_mode == SCD4X_MEASURE_MODE_SINGLE_SHOT) {
 		#if defined(SCD4X_POWER_DOWN_SINGLE_SHOT_MEASUREMENT)
 		/*
 		 * Wake up the sensor if necessary before issuing a single shot command, will be powered
@@ -332,14 +332,14 @@ static int scd4x_sample_fetch(const struct device *dev,
 		if ((chan & SENSOR_CHAN_AMBIENT_TEMP) ||
 			(chan & SENSOR_CHAN_HUMIDITY)) {
 			rc = scd4x_write_command(dev, SCD4X_CMD_MEASURE_SINGLE_SHOT_RHT_ONLY);
-			if (rc < 0 && cfg->model == SCD41) {
+			if (rc < 0 && cfg->model == SCD4X_MODEL_SCD41) {
 				LOG_ERR("Failed to send single shot measure command");
 				return rc;
 			}
 			k_sleep(K_MSEC(SCD4X_MEASURE_SINGLE_SHOT_RHT_ONLY_WAIT_MS));
 		} else {
 			rc = scd4x_write_command(dev, SCD4X_CMD_MEASURE_SINGLE_SHOT);
-			if (rc < 0 && cfg->model == SCD41) {
+			if (rc < 0 && cfg->model == SCD4X_MODEL_SCD41) {
 				LOG_ERR("Failed to send single shot measure command");
 				return rc;
 			}
@@ -530,7 +530,7 @@ static int scd4x_init(const struct device *dev)
 	}
 	k_sleep(K_MSEC(SCD4X_SET_AUTOMATIC_CALIBRATION_WAIT_MS));
 
-	if (cfg->measure_mode == MEASURE_MODE_SINGLE_SHOT) {
+	if (cfg->measure_mode == SCD4X_MEASURE_MODE_SINGLE_SHOT) {
 		#if defined(SCD4X_POWER_DOWN_SINGLE_SHOT_MEASUREMENT)
 		/*
 		 * Power down the sensor until the first measurement is requested
