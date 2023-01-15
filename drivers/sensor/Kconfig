@@ -1,1 +1,2 @@
 rsource "scd4x/Kconfig"
+rsource "scd30/Kconfig"
