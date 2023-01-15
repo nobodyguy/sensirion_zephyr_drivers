@@ -1,5 +1,7 @@
 # Sensirion Zephyr drivers
-SCD4X and SCD30 sensor drivers for Zephyr RTOS.
+SCD4X and SCD30 sensor drivers for Zephyr RTOS.\
+Based on an awesome work of [Stephen Oliver](https://github.com/steveatinfincia) (SCD4X driver) and [
+Joep Buruma](https://github.com/burumaj) (SCD30 driver).
 
 ## Supported Zephyr versions
 * 3.2.0 (September 2022)
