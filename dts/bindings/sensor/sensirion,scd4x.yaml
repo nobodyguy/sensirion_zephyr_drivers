@@ -29,12 +29,18 @@ properties:
       rather than 13-18mA. Produces a new sample every 30 seconds.
 
       Single-shot mode (SCD41 only): Similar to low-power mode but samples immediately
-      after sensor_sample_fetch() is called. See scd4x driver Kconfig options to
-      put sensor to sleep between samples.
+      after sensor_sample_fetch() is called. See option single-shot-power-down to put 
+      sensor to sleep between samples.
     enum:
         - "normal"
         - "low-power"
         - "single-shot"
+  single-shot-power-down:
+    type: boolean
+    required: false
+    description: |
+       Will send the power_down command to the sensor after a measurement, and wake it up again
+       before the next measurement. Only works on SCD41 model.
   auto-calibration:
     type: boolean
     required: false

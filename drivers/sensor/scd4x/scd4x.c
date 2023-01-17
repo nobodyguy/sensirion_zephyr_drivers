@@ -73,17 +73,21 @@ static int scd4x_write_reg(const struct device *dev, uint16_t cmd, uint16_t val)
 	return i2c_write_dt(&cfg->bus, tx_buf, sizeof(tx_buf));
 }
 
-#if defined(SCD4X_POWER_DOWN_SINGLE_SHOT_MEASUREMENT) || defined(CONFIG_PM_DEVICE)
+
 static int scd4x_power_down(const struct device *dev)
 {
-	int rc;
+	const struct scd4x_config *cfg = dev->config;
+	if (cfg->model == SCD4X_MODEL_SCD41) {
+		int rc;
 
-	rc = scd4x_write_command(dev, SCD4X_CMD_POWER_DOWN);
-	k_sleep(K_MSEC(SCD4X_POWER_DOWN_WAIT_MS));
+		rc = scd4x_write_command(dev, SCD4X_CMD_POWER_DOWN);
+		k_sleep(K_MSEC(SCD4X_POWER_DOWN_WAIT_MS));
 
-	return rc;
+		return rc;
+	} else {
+		return -ENOSYS;
+	}
 }
-#endif
 
 
 static void scd4x_wake_up(const struct device *dev)
@@ -321,13 +325,13 @@ static int scd4x_sample_fetch(const struct device *dev,
 	 * the temperature/humidity only command takes 50ms.
 	 */
 	if (cfg->model == SCD4X_MODEL_SCD41 && cfg->measure_mode == SCD4X_MEASURE_MODE_SINGLE_SHOT) {
-		#if defined(SCD4X_POWER_DOWN_SINGLE_SHOT_MEASUREMENT)
-		/*
-		 * Wake up the sensor if necessary before issuing a single shot command, will be powered
-		 * down again after reading the measurement.
-		 */
-		scd4x_wake_up(dev);
-		#endif
+		if (cfg->single_shot_power_down) {
+			/*
+			* Wake up the sensor if necessary before issuing a single shot command, will be powered
+			* down again after reading the measurement.
+			*/
+			scd4x_wake_up(dev);
+		}
 
 		if ((chan & SENSOR_CHAN_AMBIENT_TEMP) ||
 			(chan & SENSOR_CHAN_HUMIDITY)) {
@@ -394,14 +398,12 @@ static int scd4x_sample_fetch(const struct device *dev,
 		return rc;
 	}
 
-	#if defined(SCD4X_POWER_DOWN_SINGLE_SHOT_MEASUREMENT)
-	if (cfg->model == SCD41 && cfg->measure_mode == MEASURE_MODE_SINGLE_SHOT) {
+	if (cfg->model == SCD4X_MODEL_SCD41 && cfg->measure_mode == SCD4X_MEASURE_MODE_SINGLE_SHOT && cfg->single_shot_power_down) {
 		/*
 		 * Put the sensor to sleep again until the next measurement
 		 */
 		scd4x_power_down(dev);
 	}
-	#endif
 
 	return 0;
 }
@@ -530,13 +532,13 @@ static int scd4x_init(const struct device *dev)
 	}
 	k_sleep(K_MSEC(SCD4X_SET_AUTOMATIC_CALIBRATION_WAIT_MS));
 
-	if (cfg->measure_mode == SCD4X_MEASURE_MODE_SINGLE_SHOT) {
-		#if defined(SCD4X_POWER_DOWN_SINGLE_SHOT_MEASUREMENT)
-		/*
-		 * Power down the sensor until the first measurement is requested
-		 */
-		scd4x_power_down(dev);
-		#endif
+	if (cfg->model == SCD4X_MODEL_SCD41 && cfg->measure_mode == SCD4X_MEASURE_MODE_SINGLE_SHOT) {
+		if (cfg->single_shot_power_down) {
+			/*
+			* Power down the sensor until the first measurement is requested
+			*/
+			scd4x_power_down(dev);
+		}
 	} else {
 		rc = scd4x_start_periodic_measurement(dev, cfg->measure_mode);
 		if (rc < 0) {
@@ -562,6 +564,7 @@ static const struct sensor_driver_api scd4x_api = {
 		.bus = I2C_DT_SPEC_INST_GET(n),			\
 		.model = DT_INST_ENUM_IDX(n, model),	\
 		.measure_mode = DT_INST_ENUM_IDX(n, measure_mode),	\
+		.single_shot_power_down = DT_INST_PROP(n, single_shot_power_down),	\
 		.auto_calibration = DT_INST_PROP(n, auto_calibration),	\
 		.temperature_offset = DT_INST_PROP(n, temperature_offset),	\
 		.altitude = DT_INST_PROP(n, altitude)	\

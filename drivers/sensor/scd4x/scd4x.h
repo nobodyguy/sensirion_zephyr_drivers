@@ -106,6 +106,7 @@ struct scd4x_config {
 	struct i2c_dt_spec bus;
 	enum scd4x_model model;
 	enum scd4x_measure_mode measure_mode;
+	bool single_shot_power_down;
 	bool auto_calibration;
 	uint16_t temperature_offset;
 	uint16_t altitude;
