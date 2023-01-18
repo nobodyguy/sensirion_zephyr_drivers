@@ -26,7 +26,6 @@ LOG_MODULE_REGISTER(SCD4X, CONFIG_SENSOR_LOG_LEVEL);
 
 static uint8_t scd4x_compute_crc(uint16_t value)
 {
-
 	uint8_t buf[2];
 
 	sys_put_be16(value, buf);
@@ -35,7 +34,7 @@ static uint8_t scd4x_compute_crc(uint16_t value)
 }
 
 
-static int scd4x_write_command(const struct device *dev, uint16_t cmd)
+static int scd4x_write_command(const struct device *dev, enum scd4x_command cmd)
 {
 	const struct scd4x_config *cfg = dev->config;
 	uint8_t tx_buf[2];
@@ -46,7 +45,7 @@ static int scd4x_write_command(const struct device *dev, uint16_t cmd)
 }
 
 
-static int scd4x_read_reg(const struct device *dev, uint16_t reg_addr, uint8_t *rx_buf, uint8_t rx_buf_size)
+static int scd4x_read_reg(const struct device *dev, enum scd4x_command reg_addr, uint8_t *rx_buf, uint8_t rx_buf_size)
 {
 	const struct scd4x_config *cfg = dev->config;
 	int rc;
@@ -61,7 +60,7 @@ static int scd4x_read_reg(const struct device *dev, uint16_t reg_addr, uint8_t *
 }
 
 
-static int scd4x_write_reg(const struct device *dev, uint16_t cmd, uint16_t val)
+static int scd4x_write_reg(const struct device *dev, enum scd4x_command cmd, uint16_t val)
 {
 	const struct scd4x_config *cfg = dev->config;
 	uint8_t tx_buf[5];
@@ -207,7 +206,7 @@ int scd4x_set_ambient_pressure(const struct device *dev, uint16_t pressure)
 
 
 static int scd4x_start_periodic_measurement(const struct device *dev, enum scd4x_measure_mode measure_mode) {
-	int cmd = SCD4X_CMD_START_PERIODIC_MEASUREMENT;
+	enum scd4x_command cmd = SCD4X_CMD_START_PERIODIC_MEASUREMENT;
 
 	if (measure_mode == SCD4X_MEASURE_MODE_LOW_POWER) {
 		cmd = SCD4X_CMD_START_LOW_POWER_PERIODIC_MEASUREMENT;
