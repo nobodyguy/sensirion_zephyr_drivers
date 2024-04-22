@@ -5,7 +5,8 @@
 
 config SCD4X
 	bool "SCD4x CO2/Temperature/Humidity Sensor"
-	depends on I2C
+	select I2C
+	select CRC
 	help
-	  Enable driver for SCD4x co2, temperature, and humidity sensors.
+	  Enable driver for SCD4x CO2, temperature, and humidity sensor.
 	  

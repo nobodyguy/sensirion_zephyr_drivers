@@ -5,4 +5,7 @@
 
 config SCD30
 	bool "Sensirion SCD30 CO2 Sensor"
-	depends on I2C
+	select I2C
+	select CRC
+	help
+	  Enable driver for SCD30 CO2, temperature, and humidity sensor.
