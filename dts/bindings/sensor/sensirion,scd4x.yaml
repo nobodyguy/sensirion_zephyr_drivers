@@ -64,5 +64,5 @@ properties:
       Meters above sea level, improves CO2 accuracy. Sensor uses it to calculate
       ambient pressure.
 
-      The scd4x_set_ambient_pressure() function in the driver can be called at any
+      The sensirion_scd4x_set_ambient_pressure() function in the driver can be called at any
       time to update the sensor calculations, which will override the altitude setting.

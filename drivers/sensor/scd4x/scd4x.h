@@ -40,6 +40,7 @@ extern "C" {
 #define SCD4X_SET_AUTOMATIC_CALIBRATION_WAIT_MS	1
 #define SCD4X_MEASURE_SINGLE_SHOT_WAIT_MS 5000
 #define SCD4X_MEASURE_SINGLE_SHOT_RHT_ONLY_WAIT_MS 50
+#define SCD4X_PERFORM_FORCED_RECALIBRATION_WAIT_MS 400
 
 /*
 * Used to mask SCD4X_CMD_GET_DATA_READY_STATUS response value.
@@ -108,6 +109,23 @@ struct scd4x_data {
 	char serial_number[15];
 };
 
+/**
+ * @brief Starts periodic measurements.
+ *
+ * @param dev Pointer to the sensor device
+ *
+ * @return 0 if successful, negative errno code if failure.
+ */
+int sensirion_scd4x_start_periodic_measurement(const struct device *dev);
+
+/**
+ * @brief Stops periodic measurements.
+ *
+ * @param dev Pointer to the sensor device
+ *
+ * @return 0 if successful, negative errno code if failure.
+ */
+int sensirion_scd4x_stop_periodic_measurement(const struct device *dev);
 
 /**
  * @brief Updates the sensor ambient pressure value used for increasing CO2 accuracy. Overrides the altitude
@@ -119,7 +137,16 @@ struct scd4x_data {
  *
  * @return 0 if successful, negative errno code if failure.
  */
-int scd4x_set_ambient_pressure(const struct device *dev, uint16_t pressure);
+int sensirion_scd4x_set_ambient_pressure(const struct device *dev, uint16_t pressure);
+
+/**
+ * @brief Triggers CO2 calibration.
+ *
+ * @param dev Pointer to the sensor device
+ *
+ * @return 0 if successful, negative errno code if failure.
+ */
+int sensirion_scd4x_calibrate(const struct device *dev);
 
 #ifdef __cplusplus
 }
