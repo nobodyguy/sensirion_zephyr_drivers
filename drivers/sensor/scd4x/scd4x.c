@@ -350,13 +350,18 @@ static int scd4x_sample_fetch(const struct device *dev,
 			scd4x_wake_up(dev);
 		}
 
-		if ((chan & SENSOR_CHAN_AMBIENT_TEMP) ||
-			(chan & SENSOR_CHAN_HUMIDITY))
+		/*
+		 * Use RHT-only command only when explicitly requesting just temperature or humidity,
+		 * not when requesting SENSOR_CHAN_ALL or SENSOR_CHAN_CO2.
+		 * SENSOR_CHAN_ALL is typically 0, so we need to explicitly check for it.
+		 */
+		if (chan != SENSOR_CHAN_ALL && chan != SENSOR_CHAN_CO2 &&
+			(chan == SENSOR_CHAN_AMBIENT_TEMP || chan == SENSOR_CHAN_HUMIDITY))
 		{
 			rc = scd4x_write_command(dev, SCD4X_CMD_MEASURE_SINGLE_SHOT_RHT_ONLY);
-			if (rc < 0 && cfg->model == SCD4X_MODEL_SCD41)
+			if (rc < 0)
 			{
-				LOG_ERR("Failed to send single shot measure command");
+				LOG_ERR("Failed to send single shot RHT measure command");
 				return rc;
 			}
 			k_sleep(K_MSEC(SCD4X_MEASURE_SINGLE_SHOT_RHT_ONLY_WAIT_MS));
@@ -364,7 +369,7 @@ static int scd4x_sample_fetch(const struct device *dev,
 		else
 		{
 			rc = scd4x_write_command(dev, SCD4X_CMD_MEASURE_SINGLE_SHOT);
-			if (rc < 0 && cfg->model == SCD4X_MODEL_SCD41)
+			if (rc < 0)
 			{
 				LOG_ERR("Failed to send single shot measure command");
 				return rc;
@@ -372,40 +377,34 @@ static int scd4x_sample_fetch(const struct device *dev,
 			k_sleep(K_MSEC(SCD4X_MEASURE_SINGLE_SHOT_WAIT_MS));
 		}
 	}
-	else
+
+	/*
+	 * Poll the data ready flag before attempting to read the measurement, otherwise the sensor
+	 * will respond with a NACK.
+	 *
+	 * It is assumed that if the sensor has lost power or is otherwise not responding, then scd4x_read_reg
+	 * will return an error, which should prevent the kernel from getting stuck in an infinite loop here.
+	 */
+	uint16_t status_register = 0;
+	while (!(SCD4X_MEASURE_READY(status_register)))
 	{
-		/*
-		 * Poll the data ready flag before attempting to read the measurement, otherwise the sensor
-		 * will respond with a NACK.
-		 *
-		 * It is assumed that if the sensor has lost power or is otherwise not responding, then scd4x_read_reg
-		 * will return an error, which should prevent the kernel from getting stuck in an infinite loop here.
-		 */
-		uint16_t status_register = 0;
-		while (!(SCD4X_MEASURE_READY(status_register)))
+		uint8_t rx_buf[3];
+		rc = scd4x_read_reg(dev, SCD4X_CMD_GET_DATA_READY_STATUS, rx_buf, sizeof(rx_buf));
+		if (rc)
 		{
-			uint8_t rx_buf[3];
-			rc = scd4x_read_reg(dev, SCD4X_CMD_GET_DATA_READY_STATUS, rx_buf, sizeof(rx_buf));
-			if (rc)
-			{
-				LOG_ERR("Failed to read device status.");
-				return rc;
-			}
-
-			status_register = sys_get_be16(&rx_buf[0]);
-
-			if (scd4x_compute_crc(status_register) != rx_buf[2])
-			{
-				LOG_ERR("Invalid CRC for data ready flag.");
-				return -EIO;
-			}
-
-			/*
-			 * It could be up to 5000ms before the sensor measurement is ready, checking more often
-			 * than this could interfere with other I2C devices on the bus.
-			 */
-			k_sleep(K_USEC(500));
+			LOG_ERR("Failed to read device status.");
+			return rc;
 		}
+
+		status_register = sys_get_be16(&rx_buf[0]);
+
+		if (scd4x_compute_crc(status_register) != rx_buf[2])
+		{
+			LOG_ERR("Invalid CRC for data ready flag.");
+			return -EIO;
+		}
+
+		k_sleep(K_MSEC(10));
 	}
 
 	/*
@@ -417,7 +416,7 @@ static int scd4x_sample_fetch(const struct device *dev,
 		LOG_ERR("Failed to start measurement.");
 		return rc;
 	}
-	k_sleep(K_USEC(SCD4X_READ_MEASUREMENT_WAIT_MS));
+	k_sleep(K_MSEC(SCD4X_READ_MEASUREMENT_WAIT_MS));
 
 	rc = scd4x_read_sample(dev, &data->t_sample, &data->rh_sample, &data->co2_sample);
 	if (rc < 0)
