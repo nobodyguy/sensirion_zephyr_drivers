@@ -225,6 +225,55 @@ int sensirion_scd4x_calibrate(const struct device *dev)
 	return rc;
 }
 
+int sensirion_scd4x_factory_reset(const struct device *dev)
+{
+	int rc;
+
+	rc = scd4x_write_command(dev, SCD4X_CMD_PERFORM_FACTORY_RESET);
+	k_sleep(K_MSEC(SCD4X_PERFORM_FACTORY_RESET_WAIT_MS));
+
+	return rc;
+}
+
+int sensirion_scd4x_self_test(const struct device *dev)
+{
+	const struct scd4x_config *cfg = dev->config;
+	int rc;
+	uint8_t rx_buf[3];
+	uint16_t result;
+
+	/* Datasheet section 3.9.2: send the command, wait for the test to
+	 * complete (~10 s), then read the result. scd4x_read_reg() cannot be
+	 * used here because it only waits 1 µs between write and read.
+	 */
+	rc = scd4x_write_command(dev, SCD4X_CMD_PERFORM_SELF_TEST);
+	if (rc < 0) {
+		LOG_ERR("Self test: failed to send command (%d)", rc);
+		return rc;
+	}
+	k_sleep(K_MSEC(SCD4X_PERFORM_SELF_TEST_WAIT_MS));
+
+	rc = i2c_read_dt(&cfg->bus, rx_buf, sizeof(rx_buf));
+	if (rc < 0) {
+		LOG_ERR("Self test: I2C read failed (%d)", rc);
+		return rc;
+	}
+
+	result = sys_get_be16(&rx_buf[0]);
+	if (scd4x_compute_crc(result) != rx_buf[2]) {
+		LOG_ERR("Self test: invalid CRC");
+		return -EIO;
+	}
+
+	/* Datasheet section 3.9.2: result == 0 means no malfunction detected */
+	if (result != 0) {
+		LOG_ERR("Self test: sensor malfunction detected (0x%04x)", result);
+		return -EIO;
+	}
+
+	return 0;
+}
+
 /*
  * Retrieve the sensor serial number and stores it in the scd4x_data struct for debugging or future use
  */

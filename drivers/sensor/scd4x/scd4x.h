@@ -148,6 +148,28 @@ int sensirion_scd4x_set_ambient_pressure(const struct device *dev, uint16_t pres
  */
 int sensirion_scd4x_calibrate(const struct device *dev);
 
+/**
+ * @brief Performs a factory reset, erasing all user settings stored in EEPROM.
+ *        Must be called while the sensor is not in periodic measurement mode.
+ *
+ * @param dev Pointer to the sensor device
+ *
+ * @return 0 if successful, negative errno code if failure.
+ */
+int sensirion_scd4x_factory_reset(const struct device *dev);
+
+/**
+ * @brief Performs the built-in self test sequence.
+ *        Must be called while the sensor is not in periodic measurement mode.
+ *        Blocks for ~10 seconds while the test runs.
+ *
+ * @param dev Pointer to the sensor device
+ *
+ * @return 0 if no malfunction detected, -EIO if malfunction detected or CRC error,
+ *         other negative errno code on I2C failure.
+ */
+int sensirion_scd4x_self_test(const struct device *dev);
+
 #ifdef __cplusplus
 }
 #endif
